@@ -3,7 +3,6 @@ layout: post
 mathjax: true
 comments: true
 title:  "Notes about Probabilistic Robotics"
-categories: robotics
 ---
 [Probabilistic Robotis](https://www.amazon.com/gp/product/0262201623/ref=dbs_a_def_rwt_bibl_vppi_i0) by Sebastian Thrun, Wolfram Burgard and Dieter Fox is a great book. I decied to read it after taking the [Artificial Intelligence for Robotics](https://classroom.udacity.com/courses/cs373) Udacity class. Here I am going to summary the main things I learnt from the book. All the included figures are blatantly copied from the book.
 
