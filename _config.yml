@@ -5,8 +5,8 @@ permalink:           pretty
 #relative_permalinks: true
 
 # Setup
-title:               My Blogs
-tagline:             'A set of technical notes'
+title:               Dong Wang
+tagline:             'A machine learning blog'
 description:         'Notes about technical books, papers. Learn and practice often.'
 url:                 dongwang218.github.io
 baseurl:             ''
