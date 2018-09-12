@@ -202,6 +202,15 @@ MC-POMDP uses particle filter to represent a belief state, can handle non-finite
 ![Particle POMDP](/assets/table16.3.png)
 Line 6 to 15 estimates the value of each action for particle set $\chi$, this is  done by sampling an action $u$ and oberservation $z$, which are used to compute the next particle set. The best action is chosen and forward simulate to arrive at the next partle set. Which begins the next exploration. In practice, some fraction of random actions is chosen. This is repeated until value function is converged.
 
+### SARSOP
+
+The point based POMDP approximation is more popular, eg SARSOP has been used to solve hundreds of states. It is interesting, the author has a paper "point based value iteration: an anytime algorithm for pomdps" on 2003.
+![Point POMDP](/assets/prpomdpequation4.png)
+In pomdp, each output could choose different linear functions. This results in an $\lvert V \rvert = \lvert A\rvert \lvert V^\prime \rvert^{\lvert O\rvert}$ increase in num of functions.
+For point based POMDP, each point has a single linear function, value iteration is done over them, because we are calculating the function over a finite set of points, a max is take over existing functions for each belief point. The num of linear function is the same as the num of sampled points.
+![Point POMDP](/assets/prpomdpequation9.png)
+
+The SARSOP paper tries to sample point near the reachable state from $b_0$ using the optimal policies by building a search tree starting from initial belief. It uses an underbound and lower bound on optimal value function, and used it to bias sampling. Existing tree branches are removed if it becomes inferior to anothe action. Functions are pruned if it is dominated by others on the sampling points. It can solve POMDP with 15k states in less than 2 hours.
 
 ## Exploration
 
