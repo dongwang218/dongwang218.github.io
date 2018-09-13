@@ -4,7 +4,7 @@ mathjax: true
 comments: true
 title:  "Survey on Self-driving Technology"
 ---
-Tutorials usually have a good overview of the major components and approaches, they also lead to good papers to read further. Here we look at two recent self-driving tutorials:
+After reading the following two survey papers, I decided to include other self-driving papers I read into the mix. They are not end2end, most deas with either perception or planning.
 
 * TOC
 {:toc}
@@ -165,7 +165,7 @@ use iSLAM to compute poseGraph, then compute triangle groundmesh.
 use mesh-surface as opposed to a strict planar texture because road is not flat.
 they tried full 3d mesh structure, but does not improve much.
 
-use opengl to render for a camera [R|t]. at runtime, generate n_x * n_y views of the map, also generate n_theta views of the source image, compare them. but how can you warp a image 360 degree? I can understand you can opengl a 3d structure. use Normalized Mutual Information instead of correlation. (H(A) + H(B)) / H(AB). quesiton is the 3d model from lidar is in infrared, will it match camera image well? I guess texture intensity should be fine.
+use opengl to render for a camera $[R \mid t]$. at runtime, generate n_x * n_y views of the map, also generate n_theta views of the source image, compare them. but how can you warp a image 360 degree? I can understand you can opengl a 3d structure. use Normalized Mutual Information instead of correlation. (H(A) + H(B)) / H(AB). quesiton is the 3d model from lidar is in infrared, will it match camera image well? I guess texture intensity should be fine.
 
 use EKF to localize. not clear how this is related with image registration.
 
@@ -210,7 +210,7 @@ the pipeline is, this is similar to a slam approach, where sfm links poses, the 
 
 # Planning
 
-route planning picks sequence of road segments. Behavorial planner high level behaviroal command according to rules and conventions interacting with other vehicles. Motion/Local planner generates local executble path given behavior. Planning is dynamic, eg estimate time of collision.
+Route planning picks sequence of road segments. Behavorial planner generate discrete motion goals (location, speed) adherence to rules of road, eg desired lane and speed command, driving down lane reach (x,y). Motion planner generates trajectory to reach local goal. Planning is dynamic, eg estimate time of collision.
 
 ## Route Planning
 
@@ -240,6 +240,29 @@ then interpolate through sampling and CG.
 This is a driveable x,y,theta planner, can go foward and backward, can do parking, u turn etc.
 hybrid-state a* uses the first reached state inside a grid as the cost of that grid, you explore a fixed set of orientation, and use reed-sheep path if getting closer, which fits several circles and straight lines to reach destination. There is also a modified potential field. This [blog post](https://blog.habrador.com/2015/11/explaining-hybrid-star-pathfinding.html) has a good demo.
 
+### Boss Motion Planner
+
+Paper "Motion Planning in Urban Environments", 2008.
+
+Onroad driving parameters are curvature profile using second order spline (3 parameters only). Speed profile is chosen among simple piecewise linear functions. Instead of direct fit a path. Use motion model to compute the trajectory for evaluation through numerical integration. Optimization is Newton's method. Partial derivatives is computed numerically. Multiple trajectries with slightly different lateral offset is generated and evaluated for collision and offset to centerline. Precompute 5D lookup table to initialize optimizer. I guess this paramerization + motion model makes the trajectory drivable, only 3 parameters should make optimization fast.
+![Boss Profiles](/assets/bossprofiles.png)
+
+Unstructured driving is using 4d lattice planner (Anytime Dynamic A*) algorithm on $(x, y, \theta, v)$. Cost heuristic is max(no obstcale offline cost, online 2d grid based dijkstra). For dynamic obstacles, its short term trajectory is encoded into the combined cost map as a hard constraint, also around them using high-cost region. This planner is also invoked for difficult maneuvers: U turn, blocked lane. Once lattice planner is done, a similar onroad planner is used to generate trajectries following the path. It seems this involves many short trajectries terminating on the lattice path.
+
+### MOMDP Offline Planner
+
+Paper "Intention-Aware Motion Planning", 2014.
+
+This is more like a behavioral planner than motion planner.
+MOMDP: mixed observability Markov decision process. Offline planner construct a motion model for each agent intention. Robot solves momdp for a policy. online: execute policy over a set of intentions based on observed behavior. Robot only has an observation not the state of agents. agent has observes everything, it has its own policy conditioned on its intention. agent policy can be computed by MDP. Use SARSOP to compute the offline policy.
+
+For pedestrian interaction experiment,
+1mx1m grid, time step is 1 second. pedestrian goal is not known.
+Compared with Bayes-ML: precompute mdp with known pedestrian goal, online bayesian inference on the pedestrain goal based on observation. It choose action based on the most likely intention.
+Bayes-ML cause accidents, because motion is noisy, at the crossing, if it believe the intention is slightly lower to cross, it will keep current speed and when it is clear peron is actually corssing, it is too late. robot choose accelerate in view of the possibility of accident. MOMDP resolves intention only when it is necessary.
+
+For vehicle intersection behavior experiment, assuming 4 driving behavior of vehicle A. Reward function tradeoff accident rate vs clearing time. Measure the performance of MOMDP vs MDP assuming one of the behaviors. Guess the behavior of A affects its state transitions and policy. some game aspect, one impatient behaivor A will accelerate to turn left if R slows down. PODMP models other driving behaviros is interesting.
+
 # Control
 
 Follow planned trajectory, actuator and correct tracking errors.
@@ -260,4 +283,4 @@ Pure pursuit path trackign algorithm to track a lookahead waypoint, also the Sta
 
 # Cooperation
 
-Wireless communication between vehicle, eg DSRC works up to 1000 meters. A lot of security issues.
+Wireless communication between vehicle, eg DSRC works up to 1000 meters. A lot of security issues. The internet of cars may be huge besides driving.

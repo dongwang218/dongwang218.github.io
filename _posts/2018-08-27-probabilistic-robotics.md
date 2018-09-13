@@ -48,6 +48,8 @@ def move(self, x, y, orientation, steering, distance):
   ny = cy - (np.cos(self.orientation) * radius)
   return nx, ny, norientation
 ```
+If the input is acceleration and steering, use this model
+![Bicycle model](/assets/prbicycle.png)
 
 # Range Sensor model
 

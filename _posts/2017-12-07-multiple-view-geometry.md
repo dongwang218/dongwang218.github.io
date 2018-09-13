@@ -6,6 +6,9 @@ title:  "Multiple View Geometry in Computer Vision"
 ---
 This blog is about Multiple View Geometry in Computer Vision by Richard Hartley and Andrew Zisserman. I will mainly take some notes about the gold standard algorithms in this book. All figures are blatantly copied from the book.
 
+* TOC
+{:toc}
+
 # 3D Space
 
 Concepts:
@@ -104,7 +107,7 @@ The **gold standard algorithm to compute fundamental matrix**
 ![Algorithm 11.3](/assets/mvgalgorithm11.3.png)
 
 ## Image Rectification
-Identify correspondences $x_i \leftrightarrow x'_i$, compute $F, e, e'$. Compute $H'$ maps $e'$ to $(1, 0, 0)^T$, compute the matching $H$ that minimizes $\sum_i d(Hx_i, H' x'_i)$. The rectified image is $H I $ and $H' I'$. (todo: add the code from class)
+Identify correspondences $x_i \leftrightarrow x'_i$, compute $F, e, e'$. Compute $H'$ maps $e'$ to $(1, 0, 0)^T$, compute the matching $H$ that minimizes $\sum_i d(Hx_i, H' x'_i)$. The rectified images are remapped from $H$ transformation for $I$ and $H'$ transformation fro $I'$. An [implementation](https://github.com/dongwang218/classes/blob/master/cs231a/ps2/ps2_code/image_rectification.py) is from cs231a.
 
 
 # 3D reconstruction
@@ -121,6 +124,18 @@ The actual optimal reconstruction algorithm 12.1 tries to minize the distance of
 
 # N-View
 
-## Affine
+Given the set of image coordindates $x_j^i$ find the camera matrices $P^i$ and the points $X_j$ such that
 
-## Bundle Adjustment
+$$\min\limits_{\hat{P}^i, \hat{X}_j} \sum\limits_{i,j}d(\hat{P}^i \hat{X}_j, x_j^i)^2$$.
+
+## Bundle Adjustment for a Sequence of Images
+
+![Algorithm 18.3](/assets/mvgalgorithm18.3.png)
+
+A clear [implementation](https://github.com/dongwang218/classes/blob/master/cs231a/ps2/ps2_code/sfm_utils.py) is from cs231a. Assuming camera parameter is known and fixed, each 2view for 0 to 1, 1 to 2, 2 to 3 etc, with the mathcing points, solve 2view to get motion and 3d points. Then merge to get 0 to 2, then 0 to 3 etc. By first transform 2 to 3 frame to 0 frame's coordindate system (the motion and 3d structure). Adding new 3d point and its projection from last two images.   Then trianglate to adjust all 3d points across all images, then bundle adjust motions and structures together. The matches here are sparse like 50 points per image. Final 3d point cloud is from pairwise dense image match, eg 30k points per image pair, trianglate using the accurate camera motion. now the motion is from frame 0. The 3d points are in terms of frame 0.
+
+## Affine Reconstruction
+Define
+![Equation 18.5](/assets/mvgequation18.5.png)
+The **Affine reconstruction algorithm** 18.1 is
+![Algorithm 18.1](/assets/mvgalgorithm18.1.png)
