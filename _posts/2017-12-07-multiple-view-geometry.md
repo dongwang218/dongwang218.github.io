@@ -25,6 +25,7 @@ Concepts:
 A plane in two views are related by a homography $H_{3x3}$.  Two views if camera is only rotated about its center also has a homography. Given $x_i$ and $x_i^{\prime}$ are 2D correpondence point, use homogenous coordindates. From $x_i^{\prime} = \eta_i H x_i$, thus $x_i^{\prime} \times H x_i = 0$. let $\textbf{x}^{\prime} = [x_i^{\prime}, y_i^{\prime}, w_i^{\prime}]$, $h$ is the ith row of $h$. 4 points give 8 constraints $Ah = 0$, $A$ is $2nx9$. Let $A = UDV^T$, then $h$ is the last column of $V$. This is the **Direct Linear Transform (DLT) algorithm** (Algorithm 4.1 on page 91).
 
 ![Homography](/assets/mvgequation4.1.png)
+![Homography 4.1](/assets/mvgalgorithm4.1.png)
 An improved algorithm is Algorithm 4.2 on page 109, it does prenormalization before calling Algorithm 4.1, so that the mean of $x$ are (0, 0) and average distance to origin is $\sqrt{2}$.
 
 Given $H$, the projection of $x$ is $\hat{x}_i^{\prime} = Hx$, for $x^{\prime}$, its projection is $\hat{x}_i = H^{-1} x^{\prime}$. Use optimization to iteratively reduce reprojection error. This is the **gold standard Algorithm 4.3 on page 114 for estimating H from image correspondences**.

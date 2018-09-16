@@ -12,7 +12,7 @@ This blog is about object detection deep learning papers. Note that Ross Girshic
 
 # R-CNN
 
-Paper: Rich Feautre Hierarchy for Accurate Object Detection and Semantic Segmentation, 2013.
+R. Girshick, J. Donahue, T. Darrell, and J. Malik. Rich fea- ture hierarchies for accurate object detection and semantic segmentation. In CVPR, 2014.
 
 selective search for region proposal, AlexNet to compute region image features 4096 vector, then binary SVM classify label and linear regression to correct bounding box proposal. NMS to remove overlapping. 53.3% mAP on VOC 2012.
 ![RCNN](/assets/rcnn.png)
@@ -27,7 +27,7 @@ Visualize last convoultion layer $6x6x256$, by running over heldout images and c
 
 # Fast R-CNN
 
-Paper: "Fast R-CNN", 2015.
+R. Girshick. Fast R-CNN. In ICCV, 2015.
 
 68% mAP on VOC 2012, prediction is 300ms per image excluding region proposal time.
 
@@ -45,7 +45,9 @@ Some findings from experiments:
 
 # Faster R-CNN
 
-Paper "Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks", 2016.
+S. Ren, K. He, R. Girshick, and J. Sun. Faster R-CNN: To-
+wards real-time object detection with region proposal net-
+works. In NIPS, 2015.
 
 200ms per image using 300 proposals.
 winner of ILSVRC 2015 object detection.
@@ -65,7 +67,7 @@ Training:
 
 # FPN
 
-Paper "Feature Pyramid Networks for Object Detection", 2017.
+T.-Y. Lin, P. Dollár, R. Girshick, K. He, B. Hariharan, and S. Belongie. Feature pyramid networks for object detection. InCVPR, 2017.
 
 FPN is used by both Mask R-CNN and RetinaNet. It is an efficient way to simulate image pyramid. For base network ResNet, stage $C_2, C_3, C_4, C_5$, add the following top down stucture, after merge with lateral connection, add a 3x3 convolution to reduce aliasing in upsampling. This becomes $P_2, P_3, P_4, P_5$. All of them has channel depth 256 to share network heads weights etc across layers. Upsampling is by use nearest neighbor upsamling.
 ![FPN](/assets/fpn.png)
@@ -79,7 +81,7 @@ On Coco, 36.2% test-dev mAP, 35.8% test-std. Also try segmentation, on each leve
 
 # Mask R-CNN
 
-Paper "Mask R-CNN", 2017.
+K. He, G. Gkioxari, P. Dollár, and R. Girshick. Mask R-CNN. In ICCV, 2017.
 
 Based on Faster R-CNN, added a mask predicition branch, which are serveral layers of conv and deconvdeconvolution to upsample. The m×m floating-number mask output is then resized to the RoI size, and binarized at a threshold of 0.5. The mask is binary, the predicted class of the ROI is used to pick the right mask.
 ![Mask RCNN](/assets/mask-rcnn.png)
@@ -102,7 +104,7 @@ The result comparsion on Coco test-dev set.
 
 # Retinanet
 
-Paper: "focal loss for dense object detection", 2017.
+T-Y Lin, P Goyal, R Girshick, K He, P Dollár. Focal Loss for Dense Object Detection. IEEE International Conference on Computer Vision (ICCV), 2017.
 
 Paper proposes focal loss to improve one pass object detection. class imbalance is the culpit for low quality of one pass, because cross entropy loss is still high for easy example, given large num of them (for example many background patches), their sum will overshadow hard examples. focal loss multiplies cross entropy loss by $(1-p)^2$ when $y=1$ and $p^2$ when $y=0$, so easy examples are highly discounted. It uses all 100k backgroudn patches in training. It is also better than online hard-example mining. It initialize the sigmoid bias to be $\log(0.01/(1-0.01))$ to bias initial prediction to be background to avoid accumulating large losses initially.
 

@@ -190,7 +190,10 @@ PODMP performs backup loops. In Line 5 to 13, $v_{u, z, j}^k$ is the expected va
 
 ![POMDP](/assets/table15.1.png)
 
-QMDP is an approximate POMDP, it assumes after one step of control, state become fully observable. AMDP compress belief
+QMDP is an approximate POMDP, it assumes after one step of control, state become fully observable.
+![QMDP](/assets/prqmdp.png)
+
+AMDP compress belief
 
 $$\bar{b} = \begin{pmatrix}
 arg\max\limits_{x} b(x) \\

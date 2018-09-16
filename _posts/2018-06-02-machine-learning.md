@@ -318,6 +318,7 @@ Algorithms:
 
 * Viterbi: shortest path on the trellis diagram. recursive step is compute the max proability of a prefix ends up in state j.
   For multiple path, can sample from posterior using two sliced marginal.
+![Viterbi](/assets/mlviterbi.png)
 
 EM for HMM (Baum-Welch): expected complete data likelihood, use forward backward to estimate state and transitions for each sequence. Estimate the proability of latent variables of each step of each sequence, eg $\gamma_{i,t}$, the transition and output distribution can be maximized in M step.
 EM can be further improved by discrimitive training.
