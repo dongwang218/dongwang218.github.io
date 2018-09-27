@@ -101,6 +101,18 @@ Training for linear chain CRF is using maximum likelihood, the graident of log l
 ![crf equation 5.6](/assets/crf-equation5.6.png)
 This is the empirical count minus expected model count formula. To compute the expected count, transition marginal formula can be used. The log likelihood function is concave. This formula is amiable for SGD.
 
+## Neural Collaborative Filtering
+
+He, X.; Liao, L.; Zhang, H.; Nie, L.; Hu, X. & Chua, T.-S. (2017), 'Neural Collaborative Filtering', CoRR abs/1708.05031.
+
+Existing method is matrix factorization, Factorization machine is a generalization.
+For implicit feedback, data is 0 and 1, negative by sampling unobserved. Here we use logloss instead of squared loss.
+
+Combine two models linear inner product matrix factorization (GMF, general here means the loss is logloss). Nonlinear embedding through MLP. Use Adam to train (per feature learning rate) separately then average before logloss and train together using SGD. MLP embedding size is 16, three layers of MLP reducing size from 32, 16 to 8.
+![ncf](/assets/ncf-diagram.png)
+
+Evaluation metric is leave-one-out: for each user leave his latest interaction out, and rank it with 100 randomly selected unobserved items and evaluate NDCG@10. Compared with eALS, where weight is based on item popularity.
+
 ## Yahoo! Learning to Rank
 
 Ranking Relevance in Yahoo Search. Dawei Yin, Yuening Hu, Jiliang Tang, Tim Daly, Mianwei Zhou, Hua Ouyang, Jianhui Chen, Changsung Kang, Hongbo Deng, Chikashi Nobata, Jean-Marc Langlois, Yi Chang. Published 2016 in KDD
@@ -223,19 +235,46 @@ Details:
 * Historical features (past performance of an ad or user) is slightly more important than contextual infor (eg, time of day, page user is visiting). But contextual feature is important for cold start problem.
 * Each day has about 10 billion ad impressions, use 10% of data to train is good enough. Downsample negative to 0.025 is best, calibration is just multiple predicted ctr by a factor to get back the avg ctr. If $w$ is the rate of negative subsample, then corrected prediction is $\frac{p}{p + (1-p)/w}$.
 
+## Google Play Recommender: Wide and Deep
+
+Wide & Deep Learning for Recommender Systems. Heng-Tze Cheng, Levent Koc, Jeremiah Harmsen, Tal Shaked, Tushar Chandra, Hrishi Aradhye, Glen Anderson, Greg Corrado, Wei Chai, Mustafa Ispir, Rohan Anil, Zakaria Haque, Lichan Hong, Vihan Jain, Xiaobing Liu, Hemal Shah. arXiv:1606.07792 (2016)
+
+Recommendation is similar to ranking problem.
+Logistic regression is simple, scalable and interpretable. Use sparse feature crossing to memorize pattern, eg AND(user_installed_app=netfix, impression_app=pandora). Generalization using embeddings can provide interactions unseen, but it may overgeneralize for sparse data. Use simple rule sto restrict candidate before passing to a ranking model. Final model is joint trained, instead of ensemble. Use FTRL with L1 for wide part and AdaGrad for deep part.
+![google play figure1](/assets/google-play-figure1.png)
+
+Features, map continous feature to quantiles. The wide component consists of the cross-product transformation of user installed apps and impression apps. 50 billion training examples, where label 1 if recommended app is installed.
+![google play equation3](/assets/google-play-e3.png)
+![google play figure4](/assets/google-play-f4.png)
+
+## Didi ETA: Wide, Deep and Recurrent
+
+Learning to Estimate the Travel Time. ZhengWang, Kun Fu, Jieping Ye. KDD 2018.
+
+Traditionally overall travel time of a given route is formulated as the summation of the travel time through each road segment and the delay time at each intersection. Here formula as a regression problem.
+
+Feature:
+* road: obtain road segments, extract info about each segment, eg length, width, num of lanes, POIs.
+* temporal: rush hour indicator
+* traffic: real time estimated speed
+* driver info: style, vehicle
+* whether, traffic restriction
+
+Off the shelf models are GBDT, FM (feture interaction through embedding crossproduct). Combine three models wide, deep, recurrent. Wide is cross product dense feature then logistic regression with FTRL, deep part embeds sparse feature (user id), recurrent handls the variable length road segment features, the other two model use a statistical summary of segments to have fixed length features. Recurrent model use [LSTM](http://colah.github.io/posts/2015-08-Understanding-LSTMs/). When data is large, deeper model has more advantage, shallow model is a special case of deeper ones. Metric is Mean Absolute Percentage Error (MAPE), worse at roush hour. GBDT 23.6%, FM has 21.4%, WDR has 20.8%.
+![didi eta](/assets/didi-eta.png)
+
 
 
 ## Possible topics
-* Neural Factorization machine
 * AirBnB Search Personalization
 * Machine Translation
 * Kaggle
   * https://medium.com/unstructured/how-feature-engineering-can-help-you-do-well-in-a-kaggle-competition-part-i-9cc9a883514d
-*position bias
+* position bias
 * query rewrite
 * k-d tree
-* the didi arrival time estimation.
 * Machine Learning Systems
   * feature mangement: database
   * hyper-parameter tuning
   * Live model performance monitoring, alert: business metrics and model specific metrics
+* AB testing
