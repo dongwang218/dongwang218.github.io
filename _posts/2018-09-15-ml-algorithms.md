@@ -247,6 +247,8 @@ Features, map continous feature to quantiles. The wide component consists of the
 ![google play equation3](/assets/google-play-e3.png)
 ![google play figure4](/assets/google-play-f4.png)
 
+Wide and deep is also applied to censor to [predict income](https://github.com/tensorflow/models/blob/master/official/wide_deep/census_dataset.py). The wide and deep parts pretty much work on same set of features, except the explicit crossing in wide part.
+
 ## Didi ETA: Wide, Deep and Recurrent
 
 Learning to Estimate the Travel Time. ZhengWang, Kun Fu, Jieping Ye. KDD 2018.
@@ -264,6 +266,59 @@ Off the shelf models are GBDT, FM (feture interaction through embedding crosspro
 ![didi eta](/assets/didi-eta.png)
 
 
+## Gmail Priority Inbox per user Model
+
+
+Hundreds of features: social, content (headers and terms), thread, email filter label.
+Continuous features are converted to binary by ID3 splitting using information gain (reduction in entropy).
+Features are calculated in ranking, and stored for training.
+Model predicts $p = Pr(a \in A, t\in (T_{min}, T_{max}) \mid f, s)$, $T_{min}$ is less than 24 hours, $T_{max}$ is days. $s$ indicates user has opportunity to see the mail.
+
+Each message update global and per user model. Per user model include additional per user features. Use passive-aggressive updates [2].
+Per user threshold for importance or not, some user prefers to see more email.
+Realtime join is by bigtable directly. training by batching users that share a prefix, use off-peak machines, a lot of saving than true online learning. Use user manual marked emails for evaluation. Use bigtable to estimate the last time a user was active in Gmail.
+
+## Facebook Recommender using Matrix Factorization
+
+https://code.fb.com/core-data/recommending-items-to-more-than-a-billion-people/
+
+Recommend facebook pages and groups.
+use giraph, rotational hybrid apporach by worker send each other message to reduce shuffle size.
+
+top-k item recommenation, hold item vectors using ball tree, use upper bound to prune. Another way is to form k-means clustering of item feature vectors, and restrict recommendation to nearby clusters. Seems Faiss can also be used as this is nearest neighbor search.
+
+[Block ALS](https://www.youtube.com/watch?v=Q0VXllYilM0) in spark. Only send once per block, ratings are stored twice. Giraph is 10x faster, can handle 100 billion ratings.
+
+Explicit negative feedback is not easy to get, use weighted random sampling for negatives. Also use the implicit formulation.
+
+The [implicit CF](https://medium.com/radon-dev/als-implicit-collaborative-filtering-5ed653ba39fe) converts into weighted ALS.
+
+## Twitter Topic classification
+
+Large-Scale High-Precision Topic Modeling on Twitter.
+Shuang Yang, Alek Kolcz, Andy Schlaikjer, Pankaj Gupta. KDD 2014.
+
+TAXONOMY 300 topics from ODP and freebase, also map LDA clusters to topics.
+
+Tweet text classification using unlabeled tweets:
+* First filter by Chatter classifier.
+* human annotation is costly, hard for 300 topics and niche topics, only used for evaluation. Confirmation labeling is easier. Use probe task to weed labelers.
+* Positive tweet:  Use priors from user rules, entity rules (nba), url rules (urls with nba) to filter. co-training two classifiers for tweets with URLs: URL classifier and tweet classifiers. Did not use active learning, still need millions of tweets given sparsity of a tweet.
+* Negative tweet: random sample is not accurate. PUlearning [12] Rocchio classifier [20].
+* Features: tweet is short, use byte 4grams hased to 1million. For webpage, use hashed unigram with log(1+tf) then normalized by l1 norm. The normalization improves quality for long web documents.
+* Use LR one-vs-all, considering the taxonomy hierarchy, eg negatives should have include postives for its chidren. The cost of errors is different based on distance on the tree. Use parent weights to regularize children weights.
+* Select threshold to achieve a precision target. Stratefied sampling by breaking predicted probability into  buckets. Confirmation labeling to estimate precision of each bucket. Weight precision by size of each bucket to achieve desired precision.
+* UI to show tags for feedback, corrective learning [25, 23] to fix mistakes.
+* Fine tune with high quality data by adding regularization to weights learning from large scale noise data. Shrinkage to prior can be used for when new data is coming in batches. ADMM for distributed training.
+
+User Interest:
+* Collect user produced and consumed tweet topics, do a tf-idf weighting, then softmax. Decay to model interest shift.
+* List mapped to topics, users there maps to knownfor, followers become interested in.
+
+Hashtag to topics:
+* A linear model to predict topic based on correlation of hashtag and topics.
+
+A tweet has text, tweeter, engager, hashtag, url, each provide a predict over topics. Ensemble them by learning a weighted combination. The weights are trained using adaboost algorithm.
 
 ## Possible topics
 * AirBnB Search Personalization
@@ -271,8 +326,7 @@ Off the shelf models are GBDT, FM (feture interaction through embedding crosspro
 * Kaggle
   * https://medium.com/unstructured/how-feature-engineering-can-help-you-do-well-in-a-kaggle-competition-part-i-9cc9a883514d
 * position bias
-* query rewrite
-* k-d tree
+* query rewrite: based on thesaurus build by word coourrence, query log mining, spell correction.
 * Machine Learning Systems
   * feature mangement: database
   * hyper-parameter tuning
