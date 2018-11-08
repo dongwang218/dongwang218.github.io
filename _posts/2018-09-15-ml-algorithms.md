@@ -320,6 +320,54 @@ Hashtag to topics:
 
 A tweet has text, tweeter, engager, hashtag, url, each provide a predict over topics. Ensemble them by learning a weighted combination. The weights are trained using adaboost algorithm.
 
+## Google TFX Platform
+
+TFX:  A TensorFlow-Based Production-Scale Machine Learning Platform. 2018.
+
+machine learning platform (as a service)
+![tfx](/assets/tfx-figure1.png)
+
+0. support many learning tasks. using tensorflow
+1. continuous training/serving. not just workflow jobs. data visitation
+2. UI for minotoring and analyze
+3. reliable and scalable. validate data, model and serving. similar to Apache Beam.
+
+data analysis, transformation and validation.
+* anomalies, errors, alert user
+* descriptive statistics for data and features
+* assign id to sparse feature values.
+* user provide schema for expected feature properties. filter bad example.
+
+continuous training with warm start
+* Can restore selected features.
+* New data arrive in batches.
+* using Estimator and FeatureColumns for higher abstraction. eg tf.feature_column.categorical_column_with_vocabulary_list, tf.estimator.DNNRegressor.
+
+model eval and valuation
+* safe to serve: trained in new version but serving is on old version.
+* offline evaluation on AUC or approximate business metrics before live A/B testing
+* canary process
+* slicing
+
+tensorflow serving:
+* use separate threadpool for loading
+* tf.example protocol buf for NN, for non NN, a special proto for data.
+
+
+## Fake News
+
+Fake News Detection on Social Media: A Data Mining Perspective. KDD 2017.
+
+new features: publisher, content (linguistic features), engagements (user average followers, post, time). propagation features.
+
+## Position Bias
+Unbiased Learning-to-Rank with Biased Feedback Thorsten Joachims.
+Thorsten Joachims, Adith Swaminathan, Tobias Schnabel. arXiv:1608.04468v1
+
+Empirical risk minimization with expert judement: The loss of a ranking function is the averge negative DCG over training data.
+
+The probability $Q(o_i(y) = 1 \midx_i, \bar{y}_i, r_i)$ of observing the relevance ri(y) of result y for query xi is the propensity of the observation.
+
 ## Possible topics
 * AirBnB Search Personalization
 * Machine Translation
