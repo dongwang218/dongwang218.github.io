@@ -1328,3 +1328,103 @@ assert(y == 100);
 ```
 
 a coarse predicate set reports a spurious "execute the loop zero times" trace; its formula `x₀=0 ∧ y₀=0 ∧ x₀≥100 ∧ y₀≠100` is UNSAT, and interpolation yields the predicate `x = y ∧ x ≤ 100`, after which the proof goes through. This closes the loop opened back in the first part: the same interpolation that drives SAT-based model checking also supplies the missing invariants for abstraction-based software verification.
+
+# Neuro-Symbolic AI
+
+The parts above are purely symbolic: automata, logic, and exact algorithms over discrete state. Neuro-symbolic AI asks how to wire those guarantees onto neural networks, which handle perception and fluent generation but offer no logical guarantees. The recurring answer is a **tractable probabilistic bridge** — a model simple enough to reason over *exactly*, yet expressive enough to approximate the neural network. The same discrete structures from the earlier parts reappear here, now as that bridge: finite automata, automaton products, and the decision-diagram circuits descended from the [BDDs](#symbolic-model-checking-with-bdds) of the model-checking part.
+
+## Constrained Generation with Tractable Models
+
+A language model generates fluent text but cannot guarantee a constraint holds. What we want is the LLM's own distribution *conditioned* on the constraint being satisfied,
+
+$$p_{\text{guided}}(x_{1:T}) = p_{\text{LLM}}(x_{1:T} \mid \text{constraint satisfied}),$$
+
+which is intractable directly — it marginalizes over all possible continuations. Token-masking grammars (Outlines, GBNF) only enforce *local, format* constraints: at each step they answer the binary "is it still possible to satisfy the constraint?" but never "how *likely* is satisfaction down this path?", so the model is never steered early and gets forced into unnatural completions at the end.
+
+The fix is to distill a **Hidden Markov Model** from the LLM as a tractable proxy. The HMM is autoregressive like the LLM, but its hidden state is discrete and finite ($K$ states), so it supports exact marginalization (the forward algorithm, $O(T \cdot K^2)$) and — crucially — intersection with an automaton:
+
+| Property | LLM | HMM |
+|---|---|---|
+| Autoregressive | yes | yes |
+| Hidden state | continuous, high-dim | discrete, finite ($K$ states) |
+| Marginalize over all futures | intractable | tractable (forward algorithm) |
+| Intersect with a DFA | no | yes (product construction) |
+
+An HMM is $(K, V, \pi, A, B)$: $K$ hidden states, vocabulary $V$, initial distribution $\pi$, transition matrix $A \in \mathbb{R}^{K\times K}$, emission matrix $B \in \mathbb{R}^{K\times V}$. The emission matrix is the analog of the LLM's output layer — each row is a full distribution over tokens for one hidden state. It is trained by **distillation**: sample sequences from the LLM and fit the HMM by SGD on negative log-likelihood (parameters kept as unconstrained logits, softmaxed to valid probabilities), so the guidance signal aligns with the LLM's own beliefs.
+
+## Ctrl-G: Hard Constraints via DFA
+
+Ctrl-G (Zhang et al., NeurIPS 2024) expresses a hard constraint — "the output must contain keywords A, B, C" — as a **deterministic finite automaton**, then runs the forward algorithm over a **product machine** whose states are pairs $(z_t, q_t)$: the HMM hidden state $z_t$ ("what mode is the language in?") and the DFA state $q_t$ ("how far along the constraint are we?"). This is exactly the [automaton-product idea](#product-and-ctl-reduction) from LTL model checking — there a tableau crossed with the model, here an HMM crossed with a constraint DFA — and in both the Markov property collapses an exponential sum over paths into a polynomial recursion. The product has $K \times \lvert Q \rvert$ states and computes $p_{\text{HMM}}(\text{DFA accepts} \mid x_{1:t})$ exactly. Guidance is then a one-step look-ahead reweighting:
+
+$$p_{\text{guided}}(x_t \mid x_{<t}) \propto p_{\text{LLM}}(x_t \mid x_{<t}) \cdot \frac{p_{\text{HMM}}(\text{DFA accepts} \mid x_{1:t})}{p_{\text{HMM}}(\text{DFA accepts} \mid x_{1:t-1})}.$$
+
+The ratio estimates how much token $x_t$ raises the probability of eventually satisfying the constraint; if the HMM matched the LLM exactly, this would recover the optimal $p_{\text{LLM}}(x_t \mid \text{constraint satisfied})$. In practice it achieves 100% keyword satisfaction on CommonGen with both GPT-2 and TULU2-7B, 100–400× faster than A\*-style search. The limitation is the DFA itself: constraints must be regular languages — no context-free or context-sensitive constraints — and quality degrades if the HMM approximates the LLM poorly.
+
+## TRACE: Soft Constraints
+
+TRACE (Van den Broeck group) extends the same machinery from binary constraints to **continuous attributes** like toxicity or sentiment ("the output *should* be non-toxic"). It replaces the DFA with a **log-linear**, per-token classifier
+
+$$p(s \mid x_{1:n}) = \prod_{i=1}^{n} w(x_i), \qquad w(v) \in [0,1],$$
+
+linear in log-space (the log-probability is a sum of per-token log-weights). The point is tractability: because the score factorizes token-by-token, the expected attribute probability over all futures, $\mathbb{E}_{\text{HMM}}\!\left[\prod_{i>t} w(x_i) \mid z_t\right]$, decomposes into a backward recursion over the HMM, again $O(T \cdot K^2)$ — a neural (e.g. BERT) classifier would make this intractable. And unlike Ctrl-G's stateful DFA, the classifier is *memoryless*: the past is a running scalar product $\prod_{i\le t} w(x_i)$ and the future depends only on $z_t$, so no extra product state is needed. Weights are fit to an external oracle (e.g. Perspective API) in log-space MSE, $\big(\log p_{\text{oracle}}(x_{1:n}) - \sum_i \log w(x_i)\big)^2$.
+
+The trade-offs all stem from the deliberately weak classifier: a length penalty (since every $w \le 1$, longer text scores lower — mitigated by using the guidance *ratio*), sub-word tokenization that splits words across BPE tokens, and an inability to capture token interactions ("kill the process" vs. "I'll kill you"). The paper's thesis is the inversion of the usual priority:
+
+| Approach | Classifier | Inference | Overall |
+|---|---|---|---|
+| GeDi, FUDGE | strong (neural) | approximate (heuristic) | decent |
+| TRACE | weak (log-linear) | exact (forward–backward on HMM) | better |
+
+## DeepProbLog: Differentiable Logic Programming
+
+A different school (De Raedt group, KU Leuven) attacks the inverse direction — not symbolic-guides-neural at inference, but neural-feeds-symbolic with gradients flowing *back*. **ProbLog** defines a distribution over worlds by independently flipping probabilistic facts, with ordinary Prolog derivation deciding truth in each world:
+
+```prolog
+0.1 :: burglary.
+0.2 :: earthquake.
+alarm :- burglary.
+alarm :- earthquake.
+0.8 :: hears_alarm(mary).
+calls(X) :- hears_alarm(X), alarm.
+```
+
+**Annotated disjunctions** express a categorical choice (exactly one holds — like a softmax), and **DeepProbLog** (Manhaeve et al., NeurIPS 2018) lets a neural network supply those probabilities:
+
+```prolog
+nn(mnist_classifier, [Image], Digit, [0,1,2,3,4,5,6,7,8,9]) :: digit(Image, Digit).
+```
+
+The CNN's softmax over the digit becomes the distribution over the annotated disjunction. To compute a query probability, DeepProbLog **grounds** the program (enumerating derivations), **compiles** to a **Sentential Decision Diagram** — a Boolean circuit whose decomposability and determinism make weighted model counting efficient — and **evaluates** bottom-up: OR nodes sum disjoint paths, AND nodes multiply independent facts, leaves are network probabilities. The SDD is a probabilistic circuit with neural leaves, and it is the same lineage as the [OBDDs](#symbolic-model-checking-with-bdds) used for symbolic model checking — a canonical decision diagram, here annotated with probabilities rather than used for fixpoint set operations.
+
+Because the circuit is differentiable (sum and product are both smooth), training needs only **hard labels**, never true probabilities. Given `(img1, img2) → sum = 8`, the loss $\mathcal{L} = -\log p_\theta(\text{addition}(\text{img1}, \text{img2}, 8))$ backpropagates through the SDD, through the softmax, into the CNN — which learns digit classification purely from addition supervision, never seeing a single digit label. This is the appeal and the catch: SDD compilation can blow up exponentially, grounding is expensive, and it has only been demonstrated on small CNNs (MNIST), which is why descendants like Scallop (PLDI 2023) and NeurASP trade exactness for approximate, scalable inference.
+
+## Connecting the Paradigms
+
+Both schools rest on one principle: **tractable probabilistic reasoning is the bridge between neural and symbolic components.** They differ in which direction information flows.
+
+| | Ctrl-G / TRACE | DeepProbLog |
+|---|---|---|
+| Neural component | LLM (generates text) | CNN (classifies images) |
+| Symbolic component | DFA / attribute constraint | Prolog rules |
+| Tractable bridge | HMM (forward algorithm) | SDD (weighted model counting) |
+| Flows through the bridge | constraint-satisfaction probability | query probability + gradients |
+| Direction | symbolic → guides neural (inference) | neural → symbolic → gradients back (training) |
+
+Both bridges are instances of **probabilistic circuits** — computational graphs of sum and product nodes where structural properties (smoothness, decomposability) guarantee tractable marginalization. An HMM is a linear chain of sum-product layers; an SDD is a structured Boolean circuit with provenance; both are the probabilistic analog of the same canonical-circuit idea that made BDD-based model checking work.
+
+```
+Neuro-Symbolic AI
+├── Tractable Probabilistic Bridge (UCLA / Van den Broeck)
+│   ├── Ctrl-G, TRACE, Probabilistic Circuits
+│   └── exact probabilistic reasoning connects neural + symbolic
+│
+└── Neural Probabilistic Logic (KU Leuven / De Raedt)
+    ├── DeepProbLog, Scallop, NeurASP
+    └── embed neural predictions INTO logic programs, differentiate through
+```
+
+| If your goal is… | Use |
+|---|---|
+| Guarantee constraint satisfaction during LLM generation | Ctrl-G |
+| Steer an LLM toward/away from a soft attribute (toxicity, sentiment) | TRACE |
+| Learn perception from weak labels given known domain rules | DeepProbLog (Scallop for scale) |

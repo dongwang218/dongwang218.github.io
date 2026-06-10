@@ -1,0 +1,42 @@
+/* Top navigation bar (replaces the Lanyon sidebar) */
+
+.topnav {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.topnav-title {
+  font-family: "PT Sans", Helvetica, Arial, sans-serif;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #505050;
+}
+.topnav-title:hover,
+.topnav-title:focus {
+  text-decoration: none;
+}
+
+.topnav-links a {
+  margin-left: 1.25rem;
+  color: #515151;
+  font-family: "PT Sans", Helvetica, Arial, sans-serif;
+  font-size: 1.1rem;
+}
+.topnav-links a:first-child {
+  margin-left: 0;
+}
+.topnav-links a.active {
+  color: #268bd2;
+  font-weight: bold;
+}
+
+@media (max-width: 30em) {
+  .topnav {
+    justify-content: center;
+  }
+  .topnav-links {
+    margin-top: .5rem;
+  }
+}

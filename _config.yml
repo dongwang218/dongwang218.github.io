@@ -6,11 +6,11 @@ permalink:           pretty
 
 # Setup
 title:               Dong Wang
-tagline:             'A machine learning blog'
 description:         'Notes about technical books, papers. Learn and practice often.'
 url:                 dongwang218.github.io
 baseurl:             ''
 paginate:            5
+paginate_path:       '/blog/page:num'
 
 # About/contact
 author:
